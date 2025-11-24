@@ -7,7 +7,7 @@ int read_zero() {
     int fd = open("/dev/zero", O_RDONLY);
     if (fd < 0) {
         perror("open /dev/zero");
-        return;
+        return -1;
     }
 
     unsigned char buf[16];
@@ -15,7 +15,7 @@ int read_zero() {
     if (n < 0) {
         perror("read /dev/zero");
         close(fd);
-        return;
+        return -1;
     }
 
     printf("Read %d bytes from /dev/zero:\n", n);
@@ -25,7 +25,7 @@ int read_zero() {
     printf("\n\n");
 
     close(fd);
-    return 0
+    return 0;
 }
 
 // Чтение из /dev/random
@@ -33,7 +33,7 @@ int read_random() {
     int fd = open("/dev/random", O_RDONLY);
     if (fd < 0) {
         perror("open /dev/random");
-        return;
+        return -1;
     }
 
     unsigned char buf[16];
@@ -41,7 +41,7 @@ int read_random() {
     if (n < 0) {
         perror("read /dev/random");
         close(fd);
-        return;
+        return -1;
     }
 
     printf("Read %d bytes from /dev/random:\n", n);
@@ -51,15 +51,17 @@ int read_random() {
     printf("\n\n");
 
     close(fd);
-    return 0
+    return 0;
 }
 
 int main() {
     printf("=== Reading /dev/zero ===\n");
-    read_zero();
+    if (read_zero() < 0)
+        return 1;
 
     printf("=== Reading /dev/random ===\n");
-    read_random();
+    if (read_random() < 0)
+        return 1;
 
     return 0;
 }
