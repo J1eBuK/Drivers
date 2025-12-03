@@ -4,9 +4,11 @@ TARGET = zeros_and_randoms
 SRC    = main.c
 OBJ    = $(SRC:.c=.o)
 
-.PHONY: all clean
+.PHONY: all clean build post_build
 
-all: $(TARGET)
+all: build post_build
+
+build: $(TARGET)
 
 $(TARGET): $(OBJ)
 	$(CC) $(OBJ) -o $(TARGET)
@@ -18,5 +20,4 @@ post_build:
 	-rm -f $(OBJ)
 
 clean:
-	@echo "Cleaning everything..."
 	-rm -f $(OBJ) $(TARGET)
