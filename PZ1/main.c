@@ -27,7 +27,6 @@ int read_zero() {
     return 0;
 }
 
-// Чтение из /dev/random
 int read_random() {
     int fd = open("/dev/random", O_RDONLY);
     if (fd < 0) {
