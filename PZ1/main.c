@@ -9,7 +9,7 @@ int read_zero() {
         return -1;
     }
 
-    unsigned char buf[16];
+    unsigned char buf[100];
     int n = read(fd, buf, sizeof(buf));
     if (n < 0) {
         perror("read /dev/zero");
@@ -35,7 +35,7 @@ int read_random() {
         return -1;
     }
 
-    unsigned char buf[16];
+    unsigned char buf[100];
     int n = read(fd, buf, sizeof(buf));
     if (n < 0) {
         perror("read /dev/random");
