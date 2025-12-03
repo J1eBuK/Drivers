@@ -2,7 +2,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-// Чтение из /dev/zero
 int read_zero() {
     int fd = open("/dev/zero", O_RDONLY);
     if (fd < 0) {
@@ -46,7 +45,7 @@ int read_random() {
 
     printf("Read %d bytes from /dev/random:\n", n);
     for (int i = 0; i < n; i++) {
-        printf("%02x ", buf[i]);
+        printf("%02X ", buf[i]);
     }
     printf("\n\n");
 
