@@ -1,6 +1,6 @@
 CC     = gcc
 CFLAGS = -Wall -Wextra -std=c11 -O2
-TARGET = pz1
+TARGET = zeros_and_randoms
 
 SRC = main.c
 OBJ = $(SRC:.c=.o)
