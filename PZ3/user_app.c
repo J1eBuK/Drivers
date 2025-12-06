@@ -6,7 +6,7 @@
 
 int main(void)
 {
-    const char *dev = "/dev/mychardev";
+    const char *dev = "/dev/prikoldev";
     int fd = open(dev, O_RDONLY);
     if (fd < 0) {
         perror("open");
