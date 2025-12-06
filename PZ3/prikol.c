@@ -51,7 +51,7 @@ static int __init prikol_init(void)
     printk(KERN_INFO "prikol: registered with major number %d\n", majorNumber);
 
     /* 2) Создать класс в sysfs (для udev/devtmpfs) */
-    prikolClass = class_create(THIS_MODULE, DEVICE_NAME);
+    prikolClass = class_create(DEVICE_NAME);
     if (IS_ERR(prikolClass)) {
         unregister_chrdev(majorNumber, DEVICE_NAME);
         printk(KERN_ALERT "prikol: failed to create device class\n");
