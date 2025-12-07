@@ -39,10 +39,8 @@ static struct file_operations fops = {
     .read  = dev_read,
 };
 
-/* Инициализация */
 static int __init prikol_init(void)
 {
-    /* 1) Зарегистрировать символьный драйвер, получить major */
     majorNumber = register_chrdev(0, DEVICE_NAME, &fops);
     if (majorNumber < 0) {
         printk(KERN_ALERT "prikol: failed to register a major number\n");
@@ -50,7 +48,6 @@ static int __init prikol_init(void)
     }
     printk(KERN_INFO "prikol: registered with major number %d\n", majorNumber);
 
-    /* 2) Создать класс в sysfs (для udev/devtmpfs) */
     prikolClass = class_create(DEVICE_NAME);
     if (IS_ERR(prikolClass)) {
         unregister_chrdev(majorNumber, DEVICE_NAME);
@@ -59,7 +56,6 @@ static int __init prikol_init(void)
     }
     printk(KERN_INFO "prikol: device class created\n");
 
-    /* 3) Создать устройство — это приведёт к появлению /dev/prikoldev (udev/devtmpfs) */
     prikolDevice = device_create(prikolClass, NULL, MKDEV(majorNumber, 0), NULL, DEVICE_NAME);
     if (IS_ERR(prikolDevice)) {
         class_destroy(prikolClass);
@@ -72,7 +68,6 @@ static int __init prikol_init(void)
     return 0;
 }
 
-/* Выгрузка */
 static void __exit prikol_exit(void)
 {
     /* Удаляем устройство и класс */
@@ -81,14 +76,13 @@ static void __exit prikol_exit(void)
     if (prikolClass)
         class_destroy(prikolClass);
 
-    /* Отменяем регистрацию major */
     unregister_chrdev(majorNumber, DEVICE_NAME);
 
     printk(KERN_INFO "prikol: unregistered and cleaned up\n");
 }
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Alex Maximov");
+MODULE_AUTHOR("Max Stefanovskij");
 MODULE_DESCRIPTION("Simple char device that auto-creates /dev node");
 module_init(prikol_init);
 module_exit(prikol_exit);
