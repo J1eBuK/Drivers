@@ -1,19 +1,18 @@
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
-#include <linux/fs.h>
-#include <linux/uaccess.h>
-#include <linux/device.h>
-#include <linux/mutex.h>
-#include <linux/ioctl.h>
+#include <linux/fs.h>        // register_chrdev / unregister_chrdev
+#include <linux/uaccess.h>   // copy_to_user, copy_from_user
+#include <linux/device.h>    // class_create, device_create, device_destroy, class_destroy
+#include <linux/mutex.h>     // mutex
+#include <linux/ioctl.h>     // _IO, _IOR, _IOW, ...
 
 #define DEVICE_NAME "prikoldev"
 #define KBUF_SIZE 256
 
-/* ioctl */
 #define prikol_MAGIC 'k'
-#define prikol_IOC_CLEAR _IO(prikol_MAGIC, 0)
-#define prikol_IOC_IS_EMPTY _IOR(prikol_MAGIC, 1, int) //1 - пусто
+#define prikol_IOC_CLEAR _IO(prikol_MAGIC, 0)        /* void */
+#define prikol_IOC_IS_EMPTY _IOR(prikol_MAGIC, 1, int) /* user gets int: 1 if empty, 0 otherwise */
 
 static int majorNumber;
 static struct class*  prikolClass  = NULL;
@@ -32,7 +31,7 @@ static ssize_t dev_read(struct file *filp, char __user *buffer, size_t len, loff
 
     if (*offset >= kbuf_len) {
         mutex_unlock(&kbuf_mutex);
-        return 0; /* EOF */
+        return 0;
     }
 
     to_copy = kbuf_len - *offset;
@@ -128,8 +127,10 @@ static struct file_operations fops = {
     .release = dev_release,
 };
 
+/* module init / exit: register, class_create, device_create */
 static int __init prikol_init(void)
 {
+    /* register chrdev */
     majorNumber = register_chrdev(0, DEVICE_NAME, &fops);
     if (majorNumber < 0) {
         printk(KERN_ALERT "prikol: failed to register a major number\n");
@@ -137,8 +138,12 @@ static int __init prikol_init(void)
     }
     printk(KERN_INFO "prikol: registered with major number %d\n", majorNumber);
 
+    /* create class (new API: class_create(name)) */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,13,0)
+    prikolClass = class_create(THIS_MODULE, DEVICE_NAME);
+#else
     prikolClass = class_create(DEVICE_NAME);
-
+#endif
     if (IS_ERR(prikolClass)) {
         unregister_chrdev(majorNumber, DEVICE_NAME);
         printk(KERN_ALERT "prikol: failed to create device class\n");
@@ -168,7 +173,7 @@ static void __exit prikol_exit(void)
 }
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Max Stefanovkij");
-MODULE_DESCRIPTION("Kernel prikol driver");
+MODULE_AUTHOR("Max Stefanovskij");
+MODULE_DESCRIPTION("Prikol driver");
 module_init(prikol_init);
 module_exit(prikol_exit);
