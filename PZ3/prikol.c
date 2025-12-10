@@ -138,12 +138,8 @@ static int __init prikol_init(void)
     }
     printk(KERN_INFO "prikol: registered with major number %d\n", majorNumber);
 
-    /* create class (new API: class_create(name)) */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,13,0)
-    prikolClass = class_create(THIS_MODULE, DEVICE_NAME);
-#else
     prikolClass = class_create(DEVICE_NAME);
-#endif
+
     if (IS_ERR(prikolClass)) {
         unregister_chrdev(majorNumber, DEVICE_NAME);
         printk(KERN_ALERT "prikol: failed to create device class\n");
