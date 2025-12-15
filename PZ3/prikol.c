@@ -1,104 +1,99 @@
 #include <linux/module.h>
-#include <linux/init.h>
 #include <linux/fs.h>
 #include <linux/cdev.h>
 #include <linux/device.h>
 #include <linux/uaccess.h>
-#include <linux/device/class.h>
 
-#define DEVICE_NAME "prikol"
+#define DRV_NAME "prikol"
 
-static struct class  *simple_class;
 static dev_t dev_num;
-static struct cdev simple_cdev;
-static struct device *simple_device;
+static struct cdev drv_cdev;
+static struct class *drv_class;
+static struct device *drv_device;
 
-static int dev_open(struct inode *inode, struct file *file) {
-	printk(KERN_INFO "prikol: device opened\n");
-	return 0;
+static int drv_open(struct inode *inode, struct file *file)
+{
+    printk(KERN_INFO DRV_NAME ": opened\n");
+    return 0;
 }
 
-static int dev_release(struct inode *inode, struct file *file){
-	printk(KERN_INFO "prikol: device closed\n");
-	return 0;
+static int drv_release(struct inode *inode, struct file *file)
+{
+    printk(KERN_INFO DRV_NAME ": closed\n");
+    return 0;
 }
 
-static ssize_t dev_read(struct file *file, char __user *buf, size_t len, loff_t *offset){
-	char msg[] = "Tyt 6.I.JL Makc!\n";
-	int bytes = sizeof(msg);
+static ssize_t drv_read(struct file *file, char __user *buf, size_t len, loff_t *off)
+{
+    const char msg[] = "Tyt 6.bI.JL Makc\n";
+    size_t msg_len = sizeof(msg);
 
-	if(*offset >= bytes){
-		return 0;
-	}
+    if (*off >= msg_len)
+        return 0;
 
-	if(copy_to_user(buf, msg, bytes))
-		return -EFAULT;
+    if (copy_to_user(buf, msg, msg_len))
+        return -EFAULT;
 
-	*offset += bytes;
-	printk(KERN_INFO "prikol: read %d bytes\n", bytes);
-	return bytes;
+    *off += msg_len;
+    return msg_len;
 }
 
-static struct file_operations fops = {
-	.owner = THIS_MODULE,
-	.open = dev_open,
-	.release = dev_release,
-	.read = dev_read,
+static const struct file_operations drv_fops = {
+    .owner   = THIS_MODULE,
+    .open    = drv_open,
+    .release = drv_release,
+    .read    = drv_read,
 };
 
-static int __init simple_init(void)
+static int __init drv_init(void)
 {
-	int res = alloc_chrdev_region(&dev_num, 0, 1, DEVICE_NAME);
-	if (res < 0){
-		printk(KERN_ALERT "prikol: alloc_chrdev_region failed\n");
-		return res;
-	}
+    int ret;
 
-	printk(KERN_INFO "prikol: registered <major %d, minor %d>\n", MAJOR(dev_num), MINOR(dev_num));
+    ret = alloc_chrdev_region(&dev_num, 0, 1, DRV_NAME);
+    if (ret < 0)
+        return ret;
 
-	cdev_init(&simple_cdev, &fops);
-	simple_cdev.owner = THIS_MODULE;
-	res = cdev_add(&simple_cdev, dev_num, 1);
-	if (res < 0) {
-		unregister_chrdev_region(dev_num, 1);
-		printk(KERN_ALERT "prikol: cdev_add failed\n");
-		return res;
-	}
+    cdev_init(&drv_cdev, &drv_fops);
+    ret = cdev_add(&drv_cdev, dev_num, 1);
+    if (ret < 0) {
+        unregister_chrdev_region(dev_num, 1);
+        return ret;
+    }
 
-	simple_class = class_create(DEVICE_NAME);
-	if (IS_ERR(simple_class)) {
-		cdev_del(&simple_cdev);
-		unregister_chrdev_region(dev_num, 1);
-		printk(KERN_ALERT "prikol: class_create failed\n");
-		return PTR_ERR(simple_class);
-	}
+    drv_class = class_create(DRV_NAME);
+    if (IS_ERR(drv_class)) {
+        cdev_del(&drv_cdev);
+        unregister_chrdev_region(dev_num, 1);
+        return PTR_ERR(drv_class);
+    }
 
-	simple_device = device_create(simple_class, NULL, dev_num, NULL, DEVICE_NAME);
-	if(IS_ERR(simple_device)) {
-		class_destroy(simple_class);
-		cdev_del(&simple_cdev);
-		unregister_chrdev_region(dev_num, 1);
-		printk(KERN_ALERT "prikol: device_create failed\n");
-		return PTR_ERR(simple_device);
-	}
+    drv_device = device_create(drv_class, NULL, dev_num, NULL, DRV_NAME);
+    if (IS_ERR(drv_device)) {
+        class_destroy(drv_class);
+        cdev_del(&drv_cdev);
+        unregister_chrdev_region(dev_num, 1);
+        return PTR_ERR(drv_device);
+    }
 
-	printk(KERN_INFO "prikol: device created successfully\n");
-	return 0;
+    printk(KERN_INFO DRV_NAME ": loaded (major %d minor %d)\n",
+           MAJOR(dev_num), MINOR(dev_num));
 
+    return 0;
 }
 
-static void __exit simple_exit(void)
+static void __exit drv_exit(void)
 {
-	device_destroy(simple_class, dev_num);
-	class_destroy(simple_class);
-	cdev_del(&simple_cdev);
-	unregister_chrdev_region(dev_num, 1);
-	printk(KERN_INFO "prikol: unregistered and cleaned up\n");
+    device_destroy(drv_class, dev_num);
+    class_destroy(drv_class);
+    cdev_del(&drv_cdev);
+    unregister_chrdev_region(dev_num, 1);
+
+    printk(KERN_INFO DRV_NAME ": unloaded\n");
 }
 
-module_init(simple_init);
-module_exit(simple_exit);
+module_init(drv_init);
+module_exit(drv_exit);
 
 MODULE_LICENSE("GPL");
+MODULE_DESCRIPTION("Prikol oT Makca");
 MODULE_AUTHOR("Max Stefanovskij");
-MODULE_DESCRIPTION("Message from MAKC0H4NK");
