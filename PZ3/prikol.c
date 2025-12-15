@@ -22,59 +22,20 @@ static char kbuf[KBUF_SIZE];
 static size_t kbuf_len = 0;
 static DEFINE_MUTEX(kbuf_mutex);
 
-static ssize_t dev_read(struct file *filp, char __user *buffer, size_t len, loff_t *offset)
-{
-    size_t to_copy;
+static ssize_t dev_read(struct file *file, char __user *buf, size_t len, loff_t *offset){
+    char msg[] = "Tyt 6.bl.JL Makc!\n";
+    int bytes = sizeof(msg);
 
-    if (mutex_lock_interruptible(&kbuf_mutex))
-        return -ERESTARTSYS;
-
-    if (*offset >= kbuf_len) {
-        mutex_unlock(&kbuf_mutex);
+    if(*offset >= bytes){
         return 0;
     }
 
-    to_copy = kbuf_len - *offset;
-    if (len < to_copy)
-        to_copy = len;
-
-    if (copy_to_user(buffer, kbuf + *offset, to_copy)) {
-        mutex_unlock(&kbuf_mutex);
+    if(copy_to_user(buf, msg, bytes))
         return -EFAULT;
-    }
 
-    *offset += to_copy;
-    mutex_unlock(&kbuf_mutex);
-    return to_copy;
-}
-
-static ssize_t dev_write(struct file *filp, const char __user *buffer, size_t len, loff_t *offset)
-{
-    size_t to_copy;
-
-    if (len == 0)
-        return 0;
-
-    if (len > KBUF_SIZE - 1)
-        to_copy = KBUF_SIZE - 1;
-    else
-        to_copy = len;
-
-    if (mutex_lock_interruptible(&kbuf_mutex))
-        return -ERESTARTSYS;
-
-    if (copy_from_user(kbuf, buffer, to_copy)) {
-        mutex_unlock(&kbuf_mutex);
-        return -EFAULT;
-    }
-    kbuf[to_copy] = '\0';
-    kbuf_len = to_copy;
-
-    *offset = 0;
-
-    mutex_unlock(&kbuf_mutex);
-    return to_copy;
-}
+    *offset += bytes;
+    printk(KERN_INFO "simple_char: read %d bytes\n", bytes);
+    return bytes;
 
 static long dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
