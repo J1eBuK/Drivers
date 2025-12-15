@@ -81,8 +81,8 @@ static int dev_release(struct inode *inodep, struct file *filep)
 
 static struct file_operations fops = {
     .owner = THIS_MODULE,
-    .read  = dev_read,
-    .write = dev_write,
+    .read  = drv_read,
+    .write = drv_write,
     .unlocked_ioctl = dev_ioctl,
     .open  = dev_open,
     .release = dev_release,
