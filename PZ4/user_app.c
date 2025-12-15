@@ -41,7 +41,7 @@ int main(int argc, char **argv)
     }
     else if (strcmp(argv[1], "isempty") == 0) {
         int len = 0;
-        if (ioctl(fd, MODULE_IOC_IS_EMPTY, &len) < 0) perror("ioctl len"); else printf("len = %d\n", len);
+        if (ioctl(fd, MODULE_IOC_IS_EMPTY, &len) < 0) perror("ioctl Buffer is empty: "); else printf("len = %d\n", len);
     }
     else { usage(argv[0]); close(fd); return 1; }
 
