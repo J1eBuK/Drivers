@@ -9,10 +9,10 @@
 #define DEVICE "/dev/pz4"
 #define MODULE_MAGIC 'p'
 #define MODULE_IOC_CLEAR  _IO(MODULE_MAGIC, 0)
-#define MODULE_IOC_LEN    _IOR(MODULE_MAGIC, 1, int)
+#define MODULE_IOC_IS_EMPTY    _IOR(MODULE_MAGIC, 1, int)
 
 static void usage(const char *p) {
-    printf("Usage: %s write <text> | read <n> | clear | len\n", p);
+    printf("Usage: %s write <text> | read <n> | clear | isempty\n", p);
 }
 
 int main(int argc, char **argv)
@@ -39,9 +39,9 @@ int main(int argc, char **argv)
     else if (strcmp(argv[1], "clear") == 0) {
         if (ioctl(fd, MODULE_IOC_CLEAR) < 0) perror("ioctl clear"); else printf("cleared\n");
     }
-    else if (strcmp(argv[1], "len") == 0) {
+    else if (strcmp(argv[1], "isempty") == 0) {
         int len = 0;
-        if (ioctl(fd, MODULE_IOC_LEN, &len) < 0) perror("ioctl len"); else printf("len = %d\n", len);
+        if (ioctl(fd, MODULE_IOC_IS_EMPTY, &len) < 0) perror("ioctl len"); else printf("len = %d\n", len);
     }
     else { usage(argv[0]); close(fd); return 1; }
 

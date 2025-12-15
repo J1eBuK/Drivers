@@ -12,8 +12,8 @@
 
 /* ioctl команды */
 #define PZ4_MAGIC 'p'
-#define IOCTL_CLEAR_BUFFER _IO(PZ4_MAGIC, 1)
-#define IOCTL_IS_EMPTY     _IOR(PZ4_MAGIC, 2, int)
+#define IOCTL_CLEAR_BUFFER _IO(PZ4_MAGIC, 0)
+#define IOCTL_IS_EMPTY     _IOR(PZ4_MAGIC, 1, int)
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Max Stefanovskij");
