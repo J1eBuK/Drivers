@@ -2,7 +2,7 @@ CC := gcc
 CFLAGS := -Wall -Wextra -O2
 
 
-obj-m += module.o
+obj-m += pz4.o
 
 all: build_module build_user
 

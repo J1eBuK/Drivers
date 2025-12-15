@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <errno.h>
 
-#define DEVICE "/dev/module"
+#define DEVICE "/dev/pz4"
 #define MODULE_MAGIC 'p'
 #define MODULE_IOC_CLEAR  _IO(MODULE_MAGIC, 0)
 #define MODULE_IOC_LEN    _IOR(MODULE_MAGIC, 1, int)
