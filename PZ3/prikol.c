@@ -1,31 +1,30 @@
+#include <linux/init.h>
 #include <linux/module.h>
-#include <linux/fs.h>
-#include <linux/cdev.h>
-#include <linux/device.h>
-#include <linux/uaccess.h>
+#include <linux/kernel.h>
+#include <linux/fs.h>        // register_chrdev / unregister_chrdev
+#include <linux/uaccess.h>   // copy_to_user, copy_from_user
+#include <linux/device.h>    // class_create, device_create, device_destroy, class_destroy
+#include <linux/mutex.h>     // mutex
+#include <linux/ioctl.h>     // _IO, _IOR, _IOW, ...
 
-#define DRV_NAME "prikol"
+#define DEVICE_NAME "prikoldev"
+#define KBUF_SIZE 256
 
-static dev_t dev_num;
-static struct cdev drv_cdev;
-static struct class *drv_class;
-static struct device *drv_device;
+#define prikol_MAGIC 'k'
+#define prikol_IOC_CLEAR _IO(prikol_MAGIC, 0)        /* void */
+#define prikol_IOC_IS_EMPTY _IOR(prikol_MAGIC, 1, int) /* user gets int: 1 if empty, 0 otherwise */
 
-static int drv_open(struct inode *inode, struct file *file)
-{
-    printk(KERN_INFO DRV_NAME ": opened\n");
-    return 0;
-}
+static int majorNumber;
+static struct class*  prikolClass  = NULL;
+static struct device* prikolDevice = NULL;
 
-static int drv_release(struct inode *inode, struct file *file)
-{
-    printk(KERN_INFO DRV_NAME ": closed\n");
-    return 0;
-}
+static char kbuf[KBUF_SIZE];
+static size_t kbuf_len = 0;
+static DEFINE_MUTEX(kbuf_mutex);
 
 static ssize_t drv_read(struct file *file, char __user *buf, size_t len, loff_t *off)
 {
-    const char msg[] = "Tyt 6.bI.JL Makc\n";
+    const char msg[] = "Message from char_driver!\n";
     size_t msg_len = sizeof(msg);
 
     if (*off >= msg_len)
@@ -38,62 +37,100 @@ static ssize_t drv_read(struct file *file, char __user *buf, size_t len, loff_t 
     return msg_len;
 }
 
-static const struct file_operations drv_fops = {
-    .owner   = THIS_MODULE,
-    .open    = drv_open,
-    .release = drv_release,
-    .read    = drv_read,
-};
-
-static int __init drv_init(void)
+static long dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
-    int ret;
+    int empty;
+    int retval = 0;
 
-    ret = alloc_chrdev_region(&dev_num, 0, 1, DRV_NAME);
-    if (ret < 0)
-        return ret;
+    switch (cmd) {
+    case prikol_IOC_CLEAR:
+        if (mutex_lock_interruptible(&kbuf_mutex))
+            return -ERESTARTSYS;
+        kbuf_len = 0;
+        kbuf[0] = '\0';
+        mutex_unlock(&kbuf_mutex);
+        printk(KERN_INFO "prikol: buffer cleared via ioctl\n");
+        break;
 
-    cdev_init(&drv_cdev, &drv_fops);
-    ret = cdev_add(&drv_cdev, dev_num, 1);
-    if (ret < 0) {
-        unregister_chrdev_region(dev_num, 1);
-        return ret;
+    case prikol_IOC_IS_EMPTY:
+        if (mutex_lock_interruptible(&kbuf_mutex))
+            return -ERESTARTSYS;
+        empty = (kbuf_len == 0) ? 1 : 0;
+        mutex_unlock(&kbuf_mutex);
+        if (copy_to_user((int __user *)arg, &empty, sizeof(int)))
+            return -EFAULT;
+        break;
+
+    default:
+        retval = -ENOTTY;
+        break;
     }
 
-    drv_class = class_create(DRV_NAME);
-    if (IS_ERR(drv_class)) {
-        cdev_del(&drv_cdev);
-        unregister_chrdev_region(dev_num, 1);
-        return PTR_ERR(drv_class);
-    }
+    return retval;
+}
 
-    drv_device = device_create(drv_class, NULL, dev_num, NULL, DRV_NAME);
-    if (IS_ERR(drv_device)) {
-        class_destroy(drv_class);
-        cdev_del(&drv_cdev);
-        unregister_chrdev_region(dev_num, 1);
-        return PTR_ERR(drv_device);
-    }
-
-    printk(KERN_INFO DRV_NAME ": loaded (major %d minor %d)\n",
-           MAJOR(dev_num), MINOR(dev_num));
-
+static int dev_open(struct inode *inodep, struct file *filep)
+{
     return 0;
 }
 
-static void __exit drv_exit(void)
+static int dev_release(struct inode *inodep, struct file *filep)
 {
-    device_destroy(drv_class, dev_num);
-    class_destroy(drv_class);
-    cdev_del(&drv_cdev);
-    unregister_chrdev_region(dev_num, 1);
-
-    printk(KERN_INFO DRV_NAME ": unloaded\n");
+    return 0;
 }
 
-module_init(drv_init);
-module_exit(drv_exit);
+static struct file_operations fops = {
+    .owner = THIS_MODULE,
+    .read  = dev_read,
+    .write = dev_write,
+    .unlocked_ioctl = dev_ioctl,
+    .open  = dev_open,
+    .release = dev_release,
+};
+
+/* module init / exit: register, class_create, device_create */
+static int __init prikol_init(void)
+{
+    /* register chrdev */
+    majorNumber = register_chrdev(0, DEVICE_NAME, &fops);
+    if (majorNumber < 0) {
+        printk(KERN_ALERT "prikol: failed to register a major number\n");
+        return majorNumber;
+    }
+    printk(KERN_INFO "prikol: registered with major number %d\n", majorNumber);
+
+    prikolClass = class_create(DEVICE_NAME);
+
+    if (IS_ERR(prikolClass)) {
+        unregister_chrdev(majorNumber, DEVICE_NAME);
+        printk(KERN_ALERT "prikol: failed to create device class\n");
+        return PTR_ERR(prikolClass);
+    }
+
+    prikolDevice = device_create(prikolClass, NULL, MKDEV(majorNumber, 0), NULL, DEVICE_NAME);
+    if (IS_ERR(prikolDevice)) {
+        class_destroy(prikolClass);
+        unregister_chrdev(majorNumber, DEVICE_NAME);
+        printk(KERN_ALERT "prikol: failed to create the device\n");
+        return PTR_ERR(prikolDevice);
+    }
+
+    mutex_init(&kbuf_mutex);
+    printk(KERN_INFO "prikol: device created /dev/%s\n", DEVICE_NAME);
+    return 0;
+}
+
+static void __exit prikol_exit(void)
+{
+    device_destroy(prikolClass, MKDEV(majorNumber, 0));
+    class_destroy(prikolClass);
+    unregister_chrdev(majorNumber, DEVICE_NAME);
+    mutex_destroy(&kbuf_mutex);
+    printk(KERN_INFO "prikol: unregistered and cleaned up\n");
+}
 
 MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("Prikol oT Makca");
 MODULE_AUTHOR("Max Stefanovskij");
+MODULE_DESCRIPTION("Prikol driver");
+module_init(prikol_init);
+module_exit(prikol_exit);
