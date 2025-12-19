@@ -81,8 +81,10 @@ static long pz4_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
     case IOCTL_IS_EMPTY:
         empty = (buffer_len == 0);
-        if (copy_to_user((int __user *)arg, &empty, sizeof(int)))
-            return -EFAULT;
+        if empty == 1
+              printk(KERN_INFO "pz4: buffer is empty\n");
+        else
+              printk(KERN_INFO "pz4: buffer is full\n");
         break;
 
     default:
