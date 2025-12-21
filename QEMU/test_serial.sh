@@ -1,30 +1,30 @@
 #!/bin/bash
-echo "Serial port performance test"
-echo "Listening on port 4445... (background)"
-nc -l -p 4445 > serial_output.txt &
-NC_PID=$!
-echo "Netcat PID: $NC_PID"
+echo "=== SERIAL PORT TEST ==="
+echo "Step 1: Start message receiver (guest -> host)"
+nc -l -p 4445 > guest_messages.txt &
+RECEIVER_PID=$!
+echo "Receiver started (PID: $RECEIVER_PID)"
 
-echo "Waiting 2 seconds for netcat startup..."
-sleep 2
-
-echo "Sending test messages..."
-for i in {1..5}; do
-    echo "Message $i from host: $(date)" | nc localhost 4445
+echo ""
+echo "Step 2: Send messages from host to guest"
+for i in {1..3}; do
+    echo "HOST: Test $i at $(date)" | nc localhost 4444
+    echo "Sent message $i to guest"
     sleep 1
 done
 
-echo "Waiting for VM response (5 seconds)..."
+echo ""
+echo "Step 3: Wait for guest response (5 seconds)"
 sleep 5
 
-echo "Stopping netcat..."
-kill $NC_PID 2>/dev/null
+echo ""
+echo "Step 4: Stop receiver"
+kill $RECEIVER_PID 2>/dev/null
 
 echo ""
 echo "=== TEST RESULTS ==="
-echo "Received data:"
-cat serial_output.txt
+echo "Messages received FROM guest:"
+cat guest_messages.txt
 
 echo ""
-echo "File saved: serial_output.txt"
-echo "SCREENSHOT: Make screenshot of this terminal with results"
+echo "Test complete. Make screenshot of this output."
