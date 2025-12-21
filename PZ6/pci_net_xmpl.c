@@ -8,20 +8,20 @@
 #define MY_DEVICE 0x100e
 
 static int net_open(struct net_device *dev){
-    pr_info("pci_net_xmpl: интерфейс открыт\n");
+    pr_info("pci_net_xmpl: interface opened\n");
     netif_start_queue(dev);
     return 0;
 }
 
 static int net_stop(struct net_device *dev){
-    pr_info("pci_net_xmpl: интерфейс остановлен\n");
+    pr_info("pci_net_xmpl: interface stoped\n");
     netif_stop_queue(dev);
     return 0;
 }
 
 static netdev_tx_t net_xmit(struct sk_buff *skb, struct net_device *dev){
-    pr_info("pci_net_xmpl: пакет получен в hard_start_xmit, длина=%u\n", skb->len);
-    print_hex_dump(KERN_INFO, "pci_net_xmpl пакет: ", DUMP_PREFIX_NONE, 16, 1,
+    pr_info("pci_net_xmpl: package received in hard_start_xmit, len=%u\n", skb->len);
+    print_hex_dump(KERN_INFO, "pci_net_xmpl package: ", DUMP_PREFIX_NONE, 16, 1,
                    skb->data, skb->len, true);
     dev->stats.tx_packets++;
     dev->stats.tx_bytes += skb->len;
@@ -39,7 +39,7 @@ static void net_setup(struct net_device *dev){
     ether_setup(dev);
     dev->netdev_ops = &net_ops;
     eth_hw_addr_random(dev);
-    pr_info("pci_net_xmpl: MAC-адрес %pM\n", dev->dev_addr);
+    pr_info("pci_net_xmpl: MAC-adress %pM\n", dev->dev_addr);
 }
 
 static const struct pci_device_id pci_ids[] = {
@@ -51,7 +51,7 @@ static int pci_net_probe(struct pci_dev *pdev, const struct pci_device_id *id){
     int ret;
     struct net_device *ndev;
 
-    pr_info("pci_net_xmpl: probe вызван для %04x:%04x\n", id->vendor, id->device);
+    pr_info("pci_net_xmpl: probe called for %04x:%04x\n", id->vendor, id->device);
 
     ret = pci_enable_device(pdev);
     if(ret) return ret;
@@ -69,7 +69,7 @@ static int pci_net_probe(struct pci_dev *pdev, const struct pci_device_id *id){
         return ret;
     }
 
-    pr_info("pci_net_xmpl: интерфейс зарегистрирован как %s\n", ndev->name);
+    pr_info("pci_net_xmpl: registered as %s\n", ndev->name);
     return 0;
 }
 
@@ -80,7 +80,7 @@ static void pci_net_remove(struct pci_dev *pdev){
     free_netdev(ndev);
     pci_disable_device(pdev);
 
-    pr_info("pci_net_xmpl: модуль выгружен\n");
+    pr_info("pci_net_xmpl: unloaded\n");
 }
 
 static struct pci_driver pci_net_driver = {
