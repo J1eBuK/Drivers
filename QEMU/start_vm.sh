@@ -2,7 +2,7 @@
 
 echo "Starting Alpine VM with 2 serial-ports..."
 echo "Serial0: stdio (cmd)"
-echo "Serial1: TCP socket on port 4445"
+echo "Serial1: TCP socket on port 4444"
 
 qemu-system-x86_64 \
     -machine pc \
@@ -12,7 +12,7 @@ qemu-system-x86_64 \
     -device isa-serial,chardev=charserial0 \
     -chardev stdio,mux=on,id=charserial0,signal=off \
     -device isa-serial,chardev=charserial1 \
-    -chardev socket,id=charserial1,port=4445,host=0.0.0.0,server=on,wait=off \
+    -chardev socket,id=charserial1,port=4444,host=0.0.0.0,server=on,wait=off \
     -device e1000,netdev=net0 \
     -netdev user,id=net0,hostfwd=tcp::2222-:22 \
     -display none
