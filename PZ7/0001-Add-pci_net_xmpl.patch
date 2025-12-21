@@ -1,0 +1,174 @@
+From 203b04c0be9adba45338251c5289a0fbc489d59f Mon Sep 17 00:00:00 2001
+From: J1eBuK <stefm4x@gmail.com>
+Date: Sun, 21 Dec 2025 18:08:29 +0000
+Subject: [PATCH] Add pci_net_xmpl
+
+---
+ drivers/net/ethernet/Kconfig                  |  1 +
+ drivers/net/ethernet/Makefile                 |  1 +
+ drivers/net/ethernet/pci_net_xmpl/Kconfig     |  5 +
+ drivers/net/ethernet/pci_net_xmpl/Makefile    | 14 +++
+ .../net/ethernet/pci_net_xmpl/pci_net_xmpl.c  | 94 +++++++++++++++++++
+ 5 files changed, 115 insertions(+)
+ create mode 100644 drivers/net/ethernet/pci_net_xmpl/Kconfig
+ create mode 100644 drivers/net/ethernet/pci_net_xmpl/Makefile
+ create mode 100644 drivers/net/ethernet/pci_net_xmpl/pci_net_xmpl.c
+
+diff --git a/drivers/net/ethernet/Kconfig b/drivers/net/ethernet/Kconfig
+index 977b42bc1..f97ea4d51 100644
+--- a/drivers/net/ethernet/Kconfig
++++ b/drivers/net/ethernet/Kconfig
+@@ -32,6 +32,7 @@ source "drivers/net/ethernet/aquantia/Kconfig"
+ source "drivers/net/ethernet/arc/Kconfig"
+ source "drivers/net/ethernet/asix/Kconfig"
+ source "drivers/net/ethernet/atheros/Kconfig"
++source "drivers/net/ethernet/pci_net_xmpl/Kconfig"
+ 
+ config CX_ECAT
+ 	tristate "Beckhoff CX5020 EtherCAT master support"
+diff --git a/drivers/net/ethernet/Makefile b/drivers/net/ethernet/Makefile
+index 99fa180de..46206c16b 100644
+--- a/drivers/net/ethernet/Makefile
++++ b/drivers/net/ethernet/Makefile
+@@ -3,6 +3,7 @@
+ # Makefile for the Linux network Ethernet device drivers.
+ #
+ 
++obj-$(CONFIG_PCI_NET_XMPL) += pci_net_xmpl/
+ obj-$(CONFIG_NET_VENDOR_3COM) += 3com/
+ obj-$(CONFIG_NET_VENDOR_8390) += 8390/
+ obj-$(CONFIG_NET_VENDOR_ACTIONS) += actions/
+diff --git a/drivers/net/ethernet/pci_net_xmpl/Kconfig b/drivers/net/ethernet/pci_net_xmpl/Kconfig
+new file mode 100644
+index 000000000..d756e33ac
+--- /dev/null
++++ b/drivers/net/ethernet/pci_net_xmpl/Kconfig
+@@ -0,0 +1,5 @@
++config PCI_NET_XMPL
++	tristate "Example PCI network driver"
++	default m
++	help
++	  This is a simple PCI network driver for PZ
+diff --git a/drivers/net/ethernet/pci_net_xmpl/Makefile b/drivers/net/ethernet/pci_net_xmpl/Makefile
+new file mode 100644
+index 000000000..64bcd6b4b
+--- /dev/null
++++ b/drivers/net/ethernet/pci_net_xmpl/Makefile
+@@ -0,0 +1,14 @@
++CC := gcc
++CFLAGS := -Wall -Wextra -O2
++
++
++obj-m += pci_net_xmpl.o
++obj-$(CONFIG_PCI_NET_XMPL) += pci_net_xmpl/
++
++all: build_module
++
++build_module:
++	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) module
++
++clean:
++	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
+diff --git a/drivers/net/ethernet/pci_net_xmpl/pci_net_xmpl.c b/drivers/net/ethernet/pci_net_xmpl/pci_net_xmpl.c
+new file mode 100644
+index 000000000..f379c4fe3
+--- /dev/null
++++ b/drivers/net/ethernet/pci_net_xmpl/pci_net_xmpl.c
+@@ -0,0 +1,94 @@
++#include <linux/module.h>
++#include <linux/pci.h>
++#include <linux/netdevice.h>
++#include <linux/etherdevice.h>
++#include <linux/kernel.h>
++
++#define MY_VENDOR 0x8086
++#define MY_DEVICE 0x100e
++
++static int net_open(struct net_device *dev){
++    pr_info("pci_net_xmpl: interface opened\n");
++    netif_start_queue(dev);
++    return 0;
++}
++
++static int net_stop(struct net_device *dev){
++    pr_info("pci_net_xmpl: interface stoped\n");
++    netif_stop_queue(dev);
++    return 0;
++}
++
++static netdev_tx_t net_xmit(struct sk_buff *skb, struct net_device *dev){
++    pr_info("pci_net_xmpl: package received in hard_start_xmit, len=%u\n", skb->len);
++    print_hex_dump(KERN_INFO, "pci_net_xmpl package: ", DUMP_PREFIX_NONE, 16, 1,
++                   skb->data, skb->len, true);
++    dev->stats.tx_packets++;
++    dev->stats.tx_bytes += skb->len;
++    dev_kfree_skb(skb);
++    return NETDEV_TX_OK;
++}
++
++static const struct net_device_ops net_ops = {
++    .ndo_open = net_open,
++    .ndo_stop = net_stop,
++    .ndo_start_xmit = net_xmit,
++};
++
++static void net_setup(struct net_device *dev){
++    ether_setup(dev);
++    dev->netdev_ops = &net_ops;
++    eth_hw_addr_random(dev);
++    pr_info("pci_net_xmpl: MAC-adress %pM\n", dev->dev_addr);
++}
++
++static const struct pci_device_id pci_ids[] = {
++    { PCI_DEVICE(MY_VENDOR, MY_DEVICE) }, {0}
++};
++MODULE_DEVICE_TABLE(pci, pci_ids);
++
++static int pci_net_probe(struct pci_dev *pdev, const struct pci_device_id *id){
++    int ret;
++    struct net_device *ndev;
++
++    pr_info("pci_net_xmpl: probe called for %04x:%04x\n", id->vendor, id->device);
++
++    ret = pci_enable_device(pdev);
++    if(ret) return ret;
++    pci_set_master(pdev);
++
++    ndev = alloc_netdev(0, "pci_xmpl%d", NET_NAME_UNKNOWN, net_setup);
++    if(!ndev) return -ENOMEM;
++
++    pci_set_drvdata(pdev, ndev);
++
++    ret = register_netdev(ndev);
++    if(ret){
++        free_netdev(ndev);
++        pci_disable_device(pdev);
++        return ret;
++    }
++
++    pr_info("pci_net_xmpl: registered as %s\n", ndev->name);
++    return 0;
++}
++
++static void pci_net_remove(struct pci_dev *pdev){
++    struct net_device *ndev = pci_get_drvdata(pdev);
++
++    unregister_netdev(ndev);
++    free_netdev(ndev);
++    pci_disable_device(pdev);
++
++    pr_info("pci_net_xmpl: unloaded\n");
++}
++
++static struct pci_driver pci_net_driver = {
++    .name = "pci_net_xmpl",
++    .id_table = pci_ids,
++    .probe = pci_net_probe,
++    .remove = pci_net_remove,
++};
++
++module_pci_driver(pci_net_driver);
++MODULE_LICENSE("GPL");
+-- 
+2.43.0
+
