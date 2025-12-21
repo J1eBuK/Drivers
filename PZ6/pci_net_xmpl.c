@@ -4,8 +4,8 @@
 #include <linux/etherdevice.h>
 #include <linux/kernel.h>
 
-#define MY_VENDOR 0x1234
-#define MY_DEVICE 0x5678
+#define MY_VENDOR 0x8086
+#define MY_DEVICE 0x100e
 
 static int net_open(struct net_device *dev){
     pr_info("pci_net_xmpl: интерфейс открыт\n");
