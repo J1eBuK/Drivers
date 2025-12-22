@@ -29,7 +29,6 @@ int main(void)
         return EXIT_FAILURE;
     }
 
-
     if (ioctl(rd_fd, IOCTL_RESET_HIST, 0) < 0) {
         perror("IOCTL_RESET_HIST failed");
         goto cleanup;
@@ -73,8 +72,8 @@ int main(void)
                i, i * 50UL, (i + 1) * 50UL - 1, histogram[i]);
     }
 
-cleanup:
-    close(wr_fd);
+    cleanup:
+        close(wr_fd);
     close(rd_fd);
     return EXIT_SUCCESS;
 }
