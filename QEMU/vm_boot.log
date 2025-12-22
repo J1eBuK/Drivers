@@ -1,4 +1,4 @@
-Linux version 5.15.0-86-generic (buildd@lcy02-amd64-031) (gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0, GNU ld (GNU Binutils for Ubuntu) 2.38) #95-Ubuntu SMP Wed Sep 20 10:33:39 UTC 2023
+Linux version 5.15.0-86-generic (buildd@lcy02-amd64-031) (gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0, GNU ld (GNU Binutils for Ubuntu) 2.38) #95-Ubuntu SMP Mon Dec 22 04:33:39 UTC 2025
 Command line: BOOT_IMAGE=/boot/vmlinuz-5.15.0-86-generic root=UUID=8a5d8175-8526-4d1b-8123-1d6c13a5e3a1 ro console=ttyS0,115200n8
 x86/fpu: Supporting XSAVE feature 0x001: 'x87 floating point registers'
 x86/fpu: Supporting XSAVE feature 0x002: 'SSE registers'
