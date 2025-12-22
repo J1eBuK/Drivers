@@ -4,11 +4,9 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <errno.h>
-#include <string.h>
 
 #define IOCTL_GET_HIST_LEN _IOR('x', 1, int)
 #define IOCTL_GET_HIST_BUF _IOR('x', 2, size_t[20])
-#define IOCTL_RESET_HIST   _IO('x', 3)
 
 #define DEVICE_PATH "/dev/lab1dev"
 #define BIN_COUNT   20
@@ -29,18 +27,13 @@ int main(void)
         return EXIT_FAILURE;
     }
 
-    if (ioctl(rd_fd, IOCTL_RESET_HIST, 0) < 0) {
-        perror("IOCTL_RESET_HIST failed");
-        goto cleanup;
-    }
-
     for (int val = 0; val < ITERATIONS; ++val) {
         if (write(wr_fd, &val, sizeof(val)) != sizeof(val)) {
             perror("Write failed");
             goto cleanup;
         }
 
-        usleep(100);
+        usleep(1);
 
         int dummy;
         if (read(rd_fd, &dummy, sizeof(dummy)) != sizeof(dummy)) {
@@ -68,8 +61,7 @@ int main(void)
 
     printf("Histogram of read latencies (bins of ~50 µs):\n");
     for (int i = 0; i < hist_len; ++i) {
-        printf("Bin %02d (%3lu-%3lu µs): %zu samples\n",
-               i, i * 50UL, (i + 1) * 50UL - 1, histogram[i]);
+        printf("Bin %02d: %zu samples\n", i, histogram[i]);
     }
 
     cleanup:
