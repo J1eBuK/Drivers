@@ -9,12 +9,12 @@ qemu-system-x86_64 \
     -cpu max \
     -m 512 \
     -drive file=ubuntu-test.qcow2,format=qcow2,if=virtio \
-    -device isa-serial,chardev=char0 \
-    -chardev stdio,mux=on,id=char0,signal=off \
-    -device isa-serial,chardev=char1 \
-    -chardev socket,id=char1,port=4444,host=0.0.0.0,server=on,wait=off \
-    -device isa-serial,chardev=char2 \
-    -chardev socket,id=char2,port=4445,host=0.0.0.0,server=on,wait=off \
+    -device isa-serial,chardev=console \
+    -chardev stdio,mux=on,id=console,signal=off \
+    -device isa-serial,chardev=uart_rx \
+    -chardev socket,id=uart_rx,port=4444,host=0.0.0.0,server=on,wait=off \
+    -device isa-serial,chardev=uart_tx \
+    -chardev socket,id=uart_tx,port=4445,host=0.0.0.0,server=on,wait=off \
     -display none
 
 echo "VM killed"

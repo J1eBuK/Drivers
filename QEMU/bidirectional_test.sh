@@ -1,21 +1,30 @@
 #!/bin/bash
-echo "=== BIDIRECTIONAL SERIAL TEST ==="
-
-# Start receiver for guest messages (background)
-echo "Starting receiver for guest messages (port 4445)..."
-nc -l -p 4445 > guest_messages.txt &
-RECEIVER_PID=$!
-echo "Receiver PID: $RECEIVER_PID"
-
-# Start continuous sending to guest
-echo ""
-echo "Starting continuous sending to guest (port 4444)..."
-echo "Press Ctrl+C to stop test"
+echo "=== UART EMULATION TEST ==="
+echo "RX: Host → Guest (port 4444)"
+echo "TX: Guest → Host (port 4445)"
 echo ""
 
-trap 'kill $RECEIVER_PID 2>/dev/null; exit 0' INT
+# Start TX receiver (Guest → Host)
+echo "Starting TX receiver (port 4445)..."
+nc -l -p 4445 > guest_tx.txt &
+TX_PID=$!
+echo "TX receiver PID: $TX_PID"
+
+# Function to cleanup
+cleanup() {
+    kill $TX_PID 2>/dev/null
+    echo "Test stopped. Results saved to guest_tx.txt"
+    exit 0
+}
+trap cleanup INT TERM
+
+# RX transmitter (Host → Guest)
+echo ""
+echo "Starting RX transmitter (port 4444)..."
+echo "Press Ctrl+C to stop"
+echo ""
 
 while true; do
-    echo "HOST: $(date '+%T')" | nc localhost 4444
+    echo "HOST-RX: $(date '+%T')" | nc localhost 4444
     sleep 1
 done
