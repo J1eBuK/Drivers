@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <time.h>
+#include <string.h>
 
 #define IOCTL_GET_HIST_LEN _IOR('x', 1, int)
 #define IOCTL_GET_HIST_BUF _IOR('x', 2, size_t[20])
@@ -15,7 +16,6 @@
 
 int main(void)
 {
-    // Инициализация генератора случайных чисел
     srand(time(NULL));
 
     int rd_fd = open(DEVICE_PATH, O_RDONLY);
@@ -39,8 +39,7 @@ int main(void)
             goto cleanup;
         }
 
-        // Случайная задержка от 0 до 1000 мкс
-        unsigned int delay_us = rand() % 1001; // 0..1000
+        unsigned int delay_us = rand() % 1001;
         usleep(delay_us);
 
         int dummy;
@@ -67,8 +66,14 @@ int main(void)
         goto cleanup;
     }
 
+    // Подсчитаем общее количество измерений
+    size_t total_samples = 0;
+    for (int i = 0; i < hist_len; ++i) {
+        total_samples += histogram[i];
+    }
+
     printf("\n=== Histogram of Read Latencies ===\n");
-    printf("Bin width: ~50 µs | Total bins: %d\n", hist_len);
+    printf("Bin width: ~50 µs | Total bins: %d | Total samples: %zu\n", hist_len, total_samples);
     for (int i = 0; i < hist_len; ++i) {
         printf("Bin %02d (%4zu-%4zu µs): %zu samples\n",
                i,

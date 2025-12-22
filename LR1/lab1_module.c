@@ -1,3 +1,4 @@
+#include <linux/string.h>
 #include <linux/module.h>
 #include <linux/fs.h>
 #include <linux/cdev.h>
@@ -41,6 +42,14 @@ static void update_histogram(unsigned long delta_us)
 static int lab_open(struct inode *inode, struct file *file)
 {
     pr_info("lab1: open\n");
+
+    value_valid = false;
+    active_bins = 1;
+    bin_elapsed_us = 0;
+    prev_jiffies = jiffies;
+
+    memset(bins, 0, sizeof(bins));
+
     return 0;
 }
 
