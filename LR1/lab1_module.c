@@ -38,8 +38,6 @@ static void update_histogram(unsigned long delta_us)
     }
 }
 
-/* ================= Файловые операции ================= */
-
 static int lab_open(struct inode *inode, struct file *file)
 {
     pr_info("lab1: open\n");
@@ -87,7 +85,7 @@ static ssize_t lab_read(struct file *file,
 
     now = jiffies;
     delta_j = now - prev_jiffies;
-    delta_us = jiffies_to_usecs(delta_j);
+    delta_us = (delta_j * USEC_PER_SEC) / HZ;
 
     update_histogram(delta_us);
 
@@ -122,7 +120,6 @@ static long lab_ioctl(struct file *file,
     return 0;
 }
 
-
 static struct file_operations lab_fops = {
     .owner = THIS_MODULE,
     .open = lab_open,
@@ -141,7 +138,7 @@ static int __init lab_init(void)
     if (cdev_add(&lab_cdev, dev_id, 1))
         goto err_cdev;
 
-    lab_class = class_create(THIS_MODULE, DEVICE_NAME);
+    lab_class = class_create(DEVICE_NAME);
     if (IS_ERR(lab_class))
         goto err_class;
 
