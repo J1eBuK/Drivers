@@ -4,6 +4,7 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <time.h>
 
 #define IOCTL_GET_HIST_LEN _IOR('x', 1, int)
 #define IOCTL_GET_HIST_BUF _IOR('x', 2, size_t[20])
@@ -14,6 +15,9 @@
 
 int main(void)
 {
+    // Инициализация генератора случайных чисел
+    srand(time(NULL));
+
     int rd_fd = open(DEVICE_PATH, O_RDONLY);
     if (rd_fd < 0) {
         perror("Failed to open device for reading");
@@ -27,13 +31,17 @@ int main(void)
         return EXIT_FAILURE;
     }
 
+    printf("Generating %d samples with random delays (0-1000 µs)...\n", ITERATIONS);
+
     for (int val = 0; val < ITERATIONS; ++val) {
         if (write(wr_fd, &val, sizeof(val)) != sizeof(val)) {
             perror("Write failed");
             goto cleanup;
         }
 
-        usleep(1);
+        // Случайная задержка от 0 до 1000 мкс
+        unsigned int delay_us = rand() % 1001; // 0..1000
+        usleep(delay_us);
 
         int dummy;
         if (read(rd_fd, &dummy, sizeof(dummy)) != sizeof(dummy)) {
@@ -59,13 +67,18 @@ int main(void)
         goto cleanup;
     }
 
-    printf("Histogram of read latencies (bins of ~50 µs):\n");
+    printf("\n=== Histogram of Read Latencies ===\n");
+    printf("Bin width: ~50 µs | Total bins: %d\n", hist_len);
     for (int i = 0; i < hist_len; ++i) {
-        printf("Bin %02d: %zu samples\n", i, histogram[i]);
+        printf("Bin %02d (%4zu-%4zu µs): %zu samples\n",
+               i,
+               i * 50,
+               (i + 1) * 50 - 1,
+               histogram[i]);
     }
 
-    cleanup:
-        close(wr_fd);
+cleanup:
+    close(wr_fd);
     close(rd_fd);
     return EXIT_SUCCESS;
 }
