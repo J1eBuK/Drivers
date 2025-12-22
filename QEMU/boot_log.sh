@@ -1,18 +1,18 @@
 #!/bin/bash
-LOG_FILE="ubuntu_boot.log"
-echo "Starting Ubuntu VM with serial logging to $LOG_FILE"
+LOG_FILE="vm_boot.log"
+echo "Starting VM, logging to $LOG_FILE..."
 
+# Запуск с простым перенаправлением serial-порта в файл
 qemu-system-x86_64 \
     -machine pc \
     -cpu max \
-    -m 1024 \
-    -drive file=ubuntu-test.qcow2,format=qcow2,if=virtio \
-    -device isa-serial,chardev=serial0 \
-    -chardev file,path=$LOG_FILE,id=serial0 \
-    -append "console=ttyS0,115200n8" \
+    -m 512 \
+    -drive file=ubuntu-test.qcow2,format=qcow2 \
+    -serial file:$LOG_FILE \
     -display none \
     -no-reboot
 
+echo ""
 echo "VM stopped. Log saved to $LOG_FILE"
 echo "=== LOG CONTENT ==="
-tail -30 $LOG_FILE
+cat $LOG_FILE
